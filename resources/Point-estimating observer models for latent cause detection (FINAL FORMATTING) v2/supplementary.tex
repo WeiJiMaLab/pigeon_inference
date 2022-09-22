@@ -1,0 +1,140 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{appendix}
+\usepackage{upgreek}
+\usepackage{relsize}
+\usepackage{enumitem}
+%% Useful packages
+\usepackage{graphicx}
+\usepackage{empheq}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{xcolor}
+%\usepackage{apacite}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage{gensymb}
+\usepackage{multirow}
+\usepackage{tcolorbox}
+\usepackage{cases}
+% \captionsetup{font={medium,stretch=1.3}}
+\usepackage{rotating}
+\usepackage{tikz}
+
+\usepackage{graphicx}
+
+\begin{document}
+\section*{Supplementary Figures}
+\thispagestyle{empty}
+% \listoffigures
+\setcounter{page}{0}
+
+\setcounter{figure}{0}
+\makeatletter 
+\renewcommand{\thefigure}{S\@arabic\c@figure}
+\makeatother
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S1_Fig.tiff}  
+   \caption[List of models and model parameters]{Model parameters. $N$-dependent parameters are denoted by `(4)', reflecting a unique parameter fit for each $N = 6, 9, 12, 15$ condition.} 
+   \label{fig:model_accounting}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%\hbox{\hspace{-2.4cm}
+%   \includegraphics[width=1.3\textwidth]{S2_Fig.tiff}}
+   \caption[Stimulus histogram distributions along each distance-based heuristic]{Stimulus histogram distributions along each distance-based heuristic. ``Feeder absent'' trials in blue, ``feeder present'' trials in red, with colour saturation indicating the number of pigeons on a given trial ($N$=6, 9, 12, 15). For each trial, the following quantities were computed: the mean pairwise distance of all pigeons (A), the maximum local density, where local density is computed by convolving a gaussian of $\sigma=1.4$cm over the circular arena (B), the nearest neighbour distance, calculated as the mean distance between all pigeons and their nearest neighbour (C), and the distance between the two nearest pigeons (D).}
+   \label{fig:summ_stats_hist}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[ht]
+\begin{center}
+%\hbox{\hspace{-4.4cm}
+%   \includegraphics[scale=0.45]{S3_Fig.tif}  }
+   \caption[Model comparison (Bayesian Information Criterion (BIC))]{Model comparison (Bayesian Information Criterion (BIC)). Compared to AIC, BIC model comparison penalizes model complexity more heavily. MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." NN denotes ``Nearest Neighbour." The difference in BIC scores between models ($\Delta$ BIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (D9) in panel B. The four best models (highlighted) are indistinguishable via AIC and BIC.}
+   \label{fig:NLL_BIC}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%\hbox{\hspace{-4cm}
+%   \includegraphics[scale=0.45,height=170pt]{S4_Fig.tif}  }
+   \caption[Model comparison (Bayesian Information Criterion (BIC)) with probability of affiliation fitted as a separate free parameter]{Model comparison (Bayesian Information Criterion (BIC)) with probability of affiliation fitted as a separate free parameter for each of the four $N$ conditions ($N=6, 9, 12, 15$) are denoted with the addition of ``P'' to the model name. Compared to AIC, BIC model comparison penalizes model complexity more heavily. MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." NN denotes ``Nearest Neighbour." The difference in BIC scores between models ($\Delta$ BIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (B6P) in panel B. Adding a flexible $N$-dependent criterion can help rescue the Bayesian model (see model A2 compared to A1), and adding 4 flexible $N$-dependent probability of affiliation parameters increases goodness of fit for all models.}
+   \label{fig:NLLpaff_BIC}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S5_Fig.tiff}  
+   \caption[Average $d$ (log likelihood ratios) for trials binned by response x confidence pairs across all subjects]{Average $d$ (log likelihood ratios) for trials binned by response x confidence pairs across all subjects. Negative confidence rating denotes ``feeder absent'' response and positive confidence denotes a ``feeder present'' response.} 
+   \label{fig:conf_corr}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.6\textwidth]{S6_Fig.tiff}  
+   \caption[Subject reaction times for each response x confidence pair]{Subject reaction times for each response x confidence pair, where negative confidence denotes a ``feeder absent'' response and positive confidence denotes a ``feeder present'' response.} 
+   \label{fig:RT_by_resp}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S7_Fig.tiff}  
+   \caption[Model fits of proportion of ``feeder present" responses as a function of number of pigeons]{Model fits of proportion of ``feeder present" responses as a function of number of pigeons (N), denoted by shaded area; subject data denoted by solid lines.} 
+   \label{fig:all_fig_NC1C0}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S8_Fig.tiff}  
+   \caption[Fitted decision criterion parameter $k_N$ for each $N$]{Value of the fitted decision criterion parameter $k_N$ for each $N$, shown for each of the basic models.} 
+   \label{fig:ks}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S9_Fig.tiff}  
+   \caption[Fitted decision criterion parameter $k_N$ for each $N$ for flexible $p_{\text{aff}}$ model variants]{Value of the fitted decision criterion parameter $k_N$ for each $N$, shown for each of the model variants with a flexible $p_{\text{aff}}$.} 
+   \label{fig:ks_paff}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S10_Fig.tiff}  
+   \caption[Histograms of decision variable distributions for example models]{Histograms of decision variable distributions for the Bayesian model ($p_{aff} = 0.5$) in the top row, with two examples of shifted decision variable distributions. Panel A: maximum joint posterior (model 9, right-shifted). Panel B:  Bayesian model with a false probability of affiliation of 0.7 (left-shifted).} 
+   \label{fig:didactic}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S11_Fig.tiff}  
+   \caption[Probabiltiy of affiliation ($p_{\text{aff}}$) fits across $N$]{Fitted $p_{\text{aff}}$ for each $N$ shown for each model variant.} 
+   \label{fig:paffall}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{S12_Fig.tiff}  
+   \caption[``Feeder present'' responses and model fits]{Model fits of proportion of ``feeder present" responses as a function of number of pigeons (N), denoted by shaded area; subject data denoted by solid lines.} 
+   \label{fig:paff_fig_NC1C0}
+\end{center}
+\end{figure}
+
+\end{document}

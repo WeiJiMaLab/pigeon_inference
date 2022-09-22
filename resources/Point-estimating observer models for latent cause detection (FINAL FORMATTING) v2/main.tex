@@ -1,0 +1,904 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{appendix}
+\usepackage{upgreek}
+\usepackage{relsize}
+\usepackage{enumitem}
+%% Useful packages
+\usepackage{graphicx}
+\usepackage{empheq}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{xcolor}
+%\usepackage{apacite}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{authblk}
+
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage{gensymb}
+\usepackage{multirow}
+\usepackage{tcolorbox}
+\usepackage{cases}
+% \captionsetup{font={medium,stretch=1.3}}
+
+\usepackage{xr-hyper}
+% In your preamble
+
+
+% Use the PLoS provided BiBTeX style
+\bibliographystyle{plos2015}
+
+% Remove brackets from numbering in List of References
+\makeatletter
+\renewcommand{\@biblabel}[1]{\quad#1.}
+\makeatother
+
+
+\makeatletter
+\newcommand*{\addFileDependency}[1]{% argument=file name and extension
+  \typeout{(#1)}
+  \@addtofilelist{#1}
+  \IfFileExists{#1}{}{\typeout{No file #1.}}
+}
+\makeatother
+
+\newcommand*{\myexternaldocument}[1]{%
+    \externaldocument{#1}%
+    \addFileDependency{#1.tex}%
+    \addFileDependency{#1.aux}%
+}
+
+\myexternaldocument{supplementary}
+
+\usepackage{rotating}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref} 
+
+\newcommand{\mu}{\boldsymbol\upmu}
+\newcommand{\sigs}{\sigma_\text{s}}
+\newcommand{\sig}{\sigma}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\eq}[1]{\begin{align*}#1\end{align*}}
+\newcommand{\xx}{\mathbf{x}}
+\newcommand{\zz}{\mathbf{z}}
+\newcommand{\mm}{\mathbf{m}}
+\newcommand{\II}{\mathbf{I}}
+\newcommand{\mj}{{\setminus j}}
+	\addtolength{\oddsidemargin}{-.875in}
+	\addtolength{\evensidemargin}{-.875in}
+	\addtolength{\textwidth}{1.75in}
+
+	\addtolength{\topmargin}{-.875in}
+	\addtolength{\textheight}{1.75in}
+\begin{document}
+\title{Point-estimating observer models for latent cause detection}
+\author{Jennifer Laura Lee\textsuperscript{1*}, and Wei Ji Ma\textsuperscript{1*}}
+\affil{\textbf{1} Center for Neural Science, New York University, New York City, New York, USA}
+\affil{\textbf{*} jll616@nyu.edu (JL); \textbf{*} wm44@nyu.edu (WJM)}
+\date{September 2021}
+
+\maketitle
+
+\section*{Abstract}
+The spatial distribution of visual items allows us to infer the presence of latent causes in the world. For instance, a spatial cluster of ants allows us to infer the presence of a common food source. However, optimal inference requires the integration of a computationally intractable number of world states in real world situations. For example, optimal inference about whether a common cause exists based on $N$ spatially distributed visual items requires marginalizing over both the location of the latent cause and $2^N$ possible affiliation patterns (where each item may be affiliated or non-affiliated with the latent cause). How might the brain approximate this inference? We show that subject behaviour deviates qualitatively from Bayes-optimal, in particular showing an unexpected positive effect of $N$ (the number of visual items) on the false-alarm rate. We propose several ``point-estimating'' observer models that fit subject behaviour better than the Bayesian model. They each avoid a costly computational marginalization over at least one of the variables of the generative model by ``committing'' to a point estimate of at least one of the two generative model variables. These findings suggest that the brain may implement partially committal variants of Bayesian models when detecting latent causes based on complex real world data.
+
+% While a modified version of Bayes-optimal can capture this behavioural trend, we further argue that all models in the Bayesian family fail as plausible algorithmic-level descriptions of the cognitive process due to the explosive number of computations required to marginalize over both variables of the generative model. Instead, we propose several ``partially abductive” cognitive models which fit subject behaviour indistinguishably well, but which avoid this marginalization— among them, an iterative clustering algorithm which can account for both choice and reaction time data. 
+
+% Shen paper-- get likelihoods and average the models from each family
+% - divide by -2, exponentiate, average, log, multiply -2 again (AIC/BIC)
+% - Can do the same for all p_aff and all non p_aff models to show adding p_aff helps
+
+% - Scatterplot reaction times x # iterations 
+% - Modify 3YT reaction time analysis (slide 16) to reflect median RT not mean
+% - When explaining RT results, can refer to the sampling literature (where sometimes they account for reaction times; Gershman 2014)
+\section*{Author summary}
+Perceptual systems are designed to make sense of fragmented sensory data by inferring common, latent causes. Seeing a cluster of insects might allow us to infer the presence of a common food source, whereas the same number of insects scattered over a larger area of land might not evoke the same suspicions. The ability to reliably make this inference based on statistical information about the environment is surprisingly non-trivial: making the best possible inference requires making full use of the probabilistic information provided by the sensory data, which would require considering a combinatorially explosive number of hypothetical world states. In this paper, we test human subjects on their ability to perform a causal detection task: subjects are asked to judge whether an underlying cause of clustering is present or absent, based on the spatial distribution of those items. We show that subjects do not reason optimally on this task, and that particular computational short cuts (``committing'' to certain world states over others, rather than representing them all) might underlie perceptual decision-making in these causal detection schemes.
+
+\section*{Introduction}
+% Weiji recommends citing:
+% Elder Goldberg 2002
+% Geisler Perry 2001
+% Geisler Perry 2009
+% Yanli's paper -- literature review
+% Ma and van den berg 2012 -- inference of sameness
+
+Many forms of perception or cognition require the inference of high-level categorical variables from a multitude of stimuli. For example, the spatial distribution of visual items allows the perceptual decision-making system to infer the presence or absence of latent causes in the world (a high-level categorical variable). The Bayesian framework for perceptual decision-making takes a ``generative models'' approach \cite{von1867handbuch}, positing perception as inference over a latent state of the world based on noisy data. A generative model specifies how a stimulus may be generated from the presence or absence of combinations of latent causes (or objects) in a scene. The Bayes-optimal observer  knows this generative model and uses it to perform inference based on observed sensory data. The Bayesian approach is successful at capturing human decision-making data for many cases of perceptual multisensory cue integration (e.g. \cite{ernst2002humans, kording2007causal}) and sensorimotor learning (e.g. \cite{ kording2004bayesian}), and has also been successful in providing a computational account of various perceptual grouping phenomena \cite{wagemans2012century}.
+
+    The generative model approach has been useful in tasks that require the grouping or organization of ambiguous image fragments into latent causes. The problem of perceptual grouping can be conceptualized as an instance of the broader problem of detecting a latent cause (e.g., a partially occluded object), or delimiting its effects, based on directly observable stimuli (e.g., image elements). Bayesian hierarchical grouping \cite{froyen2015bayesian} is one such example of a framework for perceptual grouping based on generative mixture models. Image elements are assumed to be generated by a mixture of distinct objects, with each object generating image elements according to certain generative assumptions, offering an explanation for dot clustering, contour integration, and part decomposition in visual perception. Similarly, in the contour integration literature, researchers have re-interpreted the ``association field'' (how strongly the visual system associates two line segments with a particular configuration of positions and orientations as belonging to one contour) \cite{field1993contour} as the conditional link probability between two oriented line segments based on a generative model \cite{williams2001orientation}. Contour integration-- the ability to detect curvilinearly aligned edge configurations despite randomly oriented distractors-- was found to be optimal in humans \cite{ernst2012optimality}. These findings suggests that the generative model approach may be a useful starting point for constructing observer models that describe how the brain performs these tasks. 
+
+Similar processes may underlie our ability to make high-level inferences about hidden states of the world based on graphically abstracted visual data. For example, in the ``London bomb problem,'' an individual looks at a map of bombings to determine whether they are all indiscriminate or whether some bombs are in fact aimed at a common target. In this problem, the ideal observer must consider all possible target locations, and the possibility that each bomb was generated by a targeted vs. random process. The normative Bayesian framework proposed by Griffiths and Tenenbaum \cite{griffiths2007mere} provides a  unifying account of our sense of coincidence in a variety of contexts— including, for instance, coincidences over space (e.g., many bombs landing in a cluster on the map), time (e.g., many birthdays falling close together in date), and category (e.g., landing many heads in a row in a series of coin flips)-- providing an account of how we may decide certain states are mere coincidences while others lead us to infer a common cause. Empirically, they show that a Bayesian model roughly tracks trends in human ratings of coincidence on a variety of causal inference tasks.
+
+However, in each of these cases of perceptual grouping or causal inference, the Bayesian framework provides an approximate ``as if'' description of human behaviour, and falls short of making any commitments about the mental representations and algorithms actually carried out by the brain during these judgements. The success of Bayes-optimal models does not necessarily entail that humans perform full Bayesian probabilistic computations at the algorithmic or mechanistic level \cite{jones2011bayesian, maloney2009bayesian}.
+
+Moreover, if one were to interpret the computational Bayesian model for spatial coincidence detection as a representation-level model of the inner workings of the brain, the number of computations required to solve a relatively simple spatial coincidence detection task would quickly exceed a number which the visual system might plausibly implement. This is especially problematic for natural visual scenes with a large number of elementary visual components. How might the brain then be implementing something that approximates the Bayesian computation in the case of perceptual grouping and spatial causal inference tasks?
+
+In a Bayesian model, one of the most computationally taxing steps involves ``marginalizing'' an often high-dimensional probability distribution over a large number of generative model variables (the joint distribution) in order to arrive at the probability distribution for the specific task-relevant variable of interest (the marginal distribution). This step is often intractable in natural settings with many objects and visual features \cite{pouget2013probabilistic}. For example, in the London bombing problem described above, for a map with $N$ visual items, the Bayesian calculation amounts to considering $2^N$ distinct combinations of ``targeted” vs. ``random” items. 
+
+In a decision-making task, these ``nuisance'' generative model variables are variables of the generative model that do not bear directly on the decision of the observer, but that must be accounted for (as in ``marginalized out'') in order to arrive at the variable of interest in Bayesian inference. For example, in the London bombing problem, the variable of interest is the binary top-level category (whether or not the bombings are targeted), while an example of a nuisance parameter is the location of the target, if it exists. Taking into account possible identities of the nuisance parameter (e.g. hypothetical target location) is necessary on the Bayesian model to arrive at an optimal estimate about the variable of interest (e.g. presence or absence of a target). The generative model employed by an ideal Bayesian observer is often assumed to correspond to the true underlying process that generates the observations, meaning those nuisance variables and variables of interest are those determined by the true underlying process itself. Previous studies in perceptual decision-making \cite{fleming2013irrationality, murphy2012reasoning} suggest that subjects might use simplified point-estimates of certain nuisance variables instead of marginalizing over their full probability distributions, resulting in particular patterns of suboptimal behaviour (but see \cite{shen2016detailed}). One way to potentially evade the combinatorial explosion of unique representations entailed by the Bayesian computation during spatial coincidence detection is to represent only some task parameters as full probability distributions, while committing to others as single-point estimates. This family of approximately Bayesian models may be considered  ``partially committal'', in that they commit to at least one of the nuisance variables of the generative model as a point estimate, while still framing the problem as one involving inference about generative model variables (rather than taking on an entirely heuristic strategy that requires no knowledge of the generative model at all).
+
+In the current study, we employ a spatial coincidence task inspired by the ``London bombing"  problem to test whether spatial causal inference is optimal or may be better accounted for by ``point-estimating'' observer models. Our version of the task uses the spatial distribution of pigeons in a park, affected by a pigeon feeder whose location is not directly observable. Pigeons cluster around the pigeon feeder if she is present. The subject's goal is to infer the presence or absence of the feeder. The generative model of the task entails two abstract parameters: 1) the location of the causal object (feeder) and 2) which of all observations ``are affiliated with" (i.e., ``result from") the causal object. We ask whether these two parameters are represented by the brain at all, and if so, whether they are represented in full probabilistic form, or as collapsed point estimates. 
+
+We then test three hypotheses about probabilistic representation in the brain during a spatial coincidence detection task. On the Strong Bayesian representation hypothesis, the brain represents all of the abstract parameters of the generative model, including their full probability distributions. On the Non-Probabilistic representation hypothesis, the abstract variables of the generative model are not mentally represented at all: instead, subjects assess spatial coincidences using some heuristic metric like the mean distance between points. Lastly, the Point Estimate representation hypothesis holds that the variables entailed by the generative model are indeed represented by the brain, but that not all such parameters can be represented as full probability distributions: at least some are represented as single-point estimates. 
+
+\subsection*{Task}
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.6\textwidth]{Fig1.tiff}  
+   \caption{Task design and example stimuli. Example of ``feeder present'' (top) and ``feeder absent'' stimuli (bottom) for $N=10$. The stimulus is shown for 400 ms, after which subjects are prompted to respond about the presence or absence of the feeder, and then asked to rate their confidence level from 1 (least confident) to 4 (most confident).} 
+   \label{fig:taskdisplay}
+\end{center}
+\end{figure}
+
+10 subjects were given a cluster detection task (Fig \ref{fig:taskdisplay}), in which they were asked whether a set of dots was drawn from a random uniform distribution, or from a mixture of a uniform distribution and a Gaussian. In task context, dots denoted the location of pigeons in a park. A ``causal object" was introduced as an invisible ``pigeon feeder" whose location was not directly observable. Subjects were instructed as follows: ``On days when the pigeon feeder is present, pigeons tend to cluster around her location. But even when the feeder is present, there's only a 50\% chance that a given pigeon will be affiliated with her." Pigeons which were not affiliated with the feeder were drawn randomly. The location of the feeder herself was drawn from a Gaussian distribution centered at the center of the screen. Subjects indicated whether a feeder was present by pressing a button. Their decision was based on the spatial distribution of pigeons on the screen. Subjects completed 20 practice trials with full feedback (``correct"/ ``incorrect," including an image showing the true underlying partition of pigeons and actual location of the feeder if there was one), followed by the main task, comprised of 2000 trials with partial feedback (``correct"/ ``incorrect").
+
+\subsection*{The generative model}
+We first describe the generative model of the task. Each trial is experimentally defined as either a ``Feeder present'' ($C=1$) or ``Feeder absent'' ($C=0$) trial. These trials occur in equal proportions: $p(C=0) &= p(C=1) = 0.5$.
+If $C=0$, each observation (pigeon location) is drawn from a uniform distribution on a disc of radius $R$, centered at $(0,0)$. If $C=1$, the pigeon feeder's location $\mu$ is drawn from a circular Gaussian centered at $(0,0)$ with standard deviation $\sigma_s$, i.e., $p(\mu|C=1) &= \mathcal{N}(\mu;(0,0),\sigs^2I)$, where $I$ is the $2\times 2$ identity matrix. On these ``feeder present'' trials, for each of $N$ pigeons, there is a $p_\text{aff}$ chance that the pigeon is affiliated with the pigeon feeder (in the experiment, $p_\text{aff} = 0.5$). If a pigeon is not affiliated ($z_i = 0$), its location is drawn from a uniform distribution on a disc of radius $R$ centered at the center of the screen, just as in the $C=0$ case. If the pigeon is affiliated with the feeder ($z_i = 1$), then the pigeon's location is drawn from a smaller Gaussian distribution centered at the location of the pigeon feeder ($\mu$) with standard deviation $\sigma$, such that 
+$p(x_i|z_i=1, \mu, C=1) = \mathcal{N}(x_i;\mu,\sig^2I)$.
+ As a a result, the distribution of a pigeon location  when the feeder is present is a mixture of a Gaussian distribution centered at $\mu$ and a uniform distribution:
+\begin{align*}
+p(x_i|\mu, C=1) = p_{\text{aff}} \mathcal{N}(x_i;\mu, \sig^2I) + \frac{1-p_{\text{aff}}}{\pi R^2} \mathrm{for}~||x_i||<R.\label{mixture}
+\end{align*}
+Through our choice of $\sigs = 2$ and $\sig = 2$ (where the park had a circular radius of 10 units), it was exceedingly rare that $||x|| > R$, but when this happened, a new stimulus was drawn.
+
+\subsection*{Observer models}
+Despite its apparent simplicity, the pigeon task poses a strong computational challenge to any inference system. This is because of the problem of nuisance parameters, variables that an optimal observer would marginalize over to compute a posterior distribution over the variable of interest. In our task, the generative model entails two nuisance parameters: $\mu$, the location of the bird feeder (if present), and the ``partition variable" $\mathbf{z}$, a binary vector that denotes which of the $N$ pigeons are affiliated or unaffiliated with the feeder. The ideal Bayesian observer would represent both $\mu$ and $\mathbf{z}$ as probability distributions. Here, we test variants of the Bayesian observer model, fully heuristic models, and models that commit to (instead of marginalizing over) at least one of these two nuisance parameters.
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.6\textwidth]{Fig2.tiff}  
+   \caption{Taxonomy of model families. Family H models do not posit the representation of either location or partition.} 
+   \label{fig:model_tax}
+\end{center}
+\end{figure}
+Given $N$ observations $\mathbf{x}=\left\{x_1, \dots, x_N\right\}$, the observer is tasked to infer category $C$. The log posterior ratio is
+\begin{align}
+d &= \log \frac{p(C=1|\mathbf{x})}{p(C=0|\mathbf{x})} = \log \frac{p(C=1)}{p(C=0)} + \log \frac{p(\mathbf{x}|C=1)}{p(\mathbf{x}|C=0)}
+\end{align}
+Since $p(C=0) = p(C=1) = 0.5$, we have 
+\begin{align}
+d &= \log \frac{L_1}{L_0},
+\end{align}
+where we have introduced $L_0  \equiv p(\mathbf{x}|C=0)$ and $L_1  \equiv p(\mathbf{x}|C=1)$.
+
+We test five families of observer models, each with a different assumption about what it is that cognitive systems represent during the task (Fig \ref{fig:model_tax}). In Family A (the Strong Bayesian model), the brain represents full probability distributions over both variables of the generative model. $L_1$ is calculated through a double marginalization: by integrating over all possible feeder locations $\mu$  and by summing over all possible $\mathbf{z}$: 
+\begin{align*}
+  \text{Family A:~~}  L_1 &= \sum_\mathbf{z} \int L(\mathbf{z},\mu;\mathbf{x})p(\mathbf{z})p(\mu)d\mu
+\end{align*}
+ Here, $L(\mathbf{z},\mu;\mathbf{x})\equiv p(\mathbf{x}|\mathbf{z},\mu)$ represents the likelihood of a particular feeder location and partition given a set of pigeon observations. The prior probabilities of each feeder location and partition are independent of one another and multiply this likelihood.
+
+In Family B,  the brain commits to and represents only a single feeder location ($\hat\mu$), but represents (and sums over) the full probability distribution of partitions ($\mathbf{z}$):
+
+\begin{align*}
+    \text{Family B:~~}   \tilde{L}_1 =  \sum_\mathbf{z}L(\mathbf{z},\hat{\mu};\mathbf{x})p(\mathbf{z})
+\end{align*}
+For instance, in one model, the brain simply chooses the center of mass of all of the pigeons as its committed $\mu$. For a given pigeon observation, since no marginalization of $\mu$ is needed, and summing over different partitions involves consideration of its ``affiliated'' and ``unaffiliated'' likelihoods, $\tilde{L}_1$ can be re-expressed as a product over observed pigeons, where $p(x_i|\hat{\mu})$ can be broken down into a given pigeon's ``affiliated'' and ``unaffiliated'' terms: 
+$\tilde{L}_1 = \prod^N_{i=1}p(x_i|\hat{\mu}, C=1)$, where each factor is given by Eq. \eqref{mixture}.
+
+
+Conversely, in Family C, the brain commits to and represents only a single partition $\hat{\mathbf{z}}$. That is, it only represents one of all possible combinations of affiliated pigeons, while still representing the feeder location $\mu$ as a probability distribution over all possible locations:
+\begin{align*}
+       \text{Family C:~~}   \tilde{L}_1
+    = \int L(\mathbf{\hat{z}},\mu;\mathbf{x})p(\mu)d\mu
+\end{align*}
+The particular set of pigeons to represent as ``affiliated", $\hat{\mathbf{z}}$, is determined by the specifics of each of the models within Family C. For example, in model C8, the chosen $\hat{\mathbf{z}}$ is the partition that maximizes the marginal likelihood, so that $\tilde{L}_1 = \underset{\mathbf{z}}{\max}\,L(\mathbf{z};\mathbf{x})$. In model C9, the observer commits to $\hat{\mathbf{z}}$ through ``agglomerative clustering''-- an algorithm that begins by calculating the centroid of the pigeons as a reference point, then iteratively considers increasingly distant pigeons for inclusion into a ``feeder affiliated'' cluster. 
+
+
+
+In Family D, the brain represents both feeder location and partition as point estimates rather than probability distributions. The general form of models in this family is:
+\begin{align*}
+        \text{Family D:~~}    \tilde{L}_1  = L(\mathbf{\hat{z}}, \hat{\mu};\mathbf{x}).
+\end{align*}
+For instance, one model commits to both feeder location and partition by maximizing their joint posterior: $\tilde{L}_1 = \underset{\mathbf{z},\mu}{\max}~L(\mathbf{z},\mu;\mathbf{x})p(\mu)$.
+
+For all of Families A through D, once the log posterior ratio $d$ is calculated, observer responses are modelled allowing for decision noise (Gaussian noise on the log posterior ratio with variance $\sigma_d$), and a lapse rate $\lambda$, which represents the probability of randomly choosing either category with probability 0.5. The ideal Bayesian observer would respond $C=1$ when $d > k$ where $k=0$. However, we also allow for the possibility that observers have unequal utilities, costs, or incorrect prior assumptions when reporting  $C=0$ and $C=1$, by fitting the decision criterion $k$ as a free parameter over all trials or as four separate parameters for each of $N = 6, 9, 12, 15$.
+
+Putting everything together, the probability of reporting $C=1$ becomes
+\begin{align}
+    p(\hat{C} = 1|\mathbf{x}) &= 0.5\lambda + (1-\lambda) \Phi\Big(\log \frac{\tilde{L}_1}{L_0}; k, \sigma_d^2\Big),
+\end{align}
+where $\tilde{L}_1 = L_1$ for Family A and $\Phi$ denotes the cumulative normal distribution.
+
+Lastly, in Family H, the brain does not represent feeder location or partition at all. Instead, observers solve the task by representing some other abstract variable outside of the generative model, like ``pigeon density." For instance, the observer might simply represent the density of the points on screen and respond ``feeder present" if that number exceeds some threshold. Each heuristic model has the form
+\begin{align*}
+    p(\hat{C}=1|\mathbf{x}) &= \Phi\Big(f(\mathbf{x}); k_n,\sigma_d^2\Big),
+\end{align*}
+where the function $f$ represents the model's heuristic.
+
+Family A represents the Strong Bayesian representation hypothesis, Families B, C, and D the Point-Estimate representation hypothesis, and family H the non-probabilistic representation hypothesis. See S1 Fig for the full list of observer models and their parameters by family, and see Methods for a more detailed description of each model.
+
+\section*{Results}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{Fig3.tif}
+   \caption{Proportion of ``feeder present" responses as a function of each distance-based heuristic. ``Feeder absent'' trials in blue, ``feeder present'' trials in red, with colour saturation indicating the number of pigeons on a given trial ($N$=6, 9, 12, 15). For each trial, the following quantities were computed: the mean pairwise distance of all pigeons (A), the maximum local density, where local density is computed by convolving a gaussian of $\sigma=1.4$cm over the circular arena (B), the nearest neighbour distance, calculated as the mean distance between all pigeons and their nearest neighbour (C), and the distance between the two nearest pigeons (D). Points are binned in equal quantiles along the abscissa quantity such that an equal number of trials are represented in each point.For stimulus histogram distributions along each abscissa quantity, see \ref{fig:summ_stats_hist} Fig.}
+   \label{fig:summ_stats}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.6\textwidth]{Fig4.tiff}  
+   \caption{Model fits of proportion of ``feeder present" responses as a function of number of pigeons (N) denoted by shaded area; subject data denoted by solid lines. The Bayesian model incorrectly predicts a decreasing effect of N on false alarms.}
+   \label{fig:N4}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.8\textwidth]{Fig5.tiff}  
+   \caption{Subject data (solid) and model fits (shaded), with standard error, showing proportion of ``feeder present" responses during ``feeder present" trials, as a function of the number of affiliated or unaffiliated pigeons. Model fits shown for strong Bayes (A1) and Agglomerative Clustering (C8).} 
+   \label{fig:N}
+\end{center}
+\end{figure}
+
+
+
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=\textwidth]{Fig6.tiff}  
+   \caption{Two informative dimensions of model predictions: overall predicted subject accuracy, and effect of N on false alarms (the slope of the blue shaded line in
+   \ref{fig:all_fig_NC1C0} Fig).}
+   \label{fig:slopeaccuracy}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\hspace*{-2cm}
+%   \includegraphics[scale=0.45]{Fig7.tif}  
+   \caption{Model comparison (AIC). MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." See  NN denotes ``Nearest Neighbour." See "Model Descriptions" under "Methods" for definitions of each model. AIC (Akaike information criterion) is an estimated score for the quality of each model, and the difference in AIC scores between models ($\Delta$ AIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (D9) in panel B. The four best models (highlighted) are indistinguishable via AIC and BIC (see \ref{fig:NLL_BIC} Fig).} 
+   \label{fig:NLL_AIC}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\hspace*{-2cm}
+%   \includegraphics[scale=0.45,height=180pt] {Fig8.tif}  
+   \caption{Model comparison (AIC) with probability of affiliation fitted as a separate free parameter for each of the four $N$ conditions ($N=6, 9, 12, 15$) are denoted with the addition of ``P'' to the model name. MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." NN denotes ``Nearest Neighbour." See "Model Descriptions" under "Methods" for definitions of each model. AIC (Akaike information criterion) is an estimated score for the quality of each model, and the difference in AIC scores between models ($\Delta$ AIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (B6P) in panel B. The five best models (highlighted) are indistinguishable via AIC and BIC (see \ref{fig:NLLpaff_BIC} Fig) Adding a flexible $N$-dependent criterion can help rescue the Bayesian model (see model A2 compared to A1), and adding 4 flexible $N$-dependent probability of affiliation parameters increases goodness of fit for all models. See \ref{fig:model_accounting} Fig for more information about the parameters included in each model.}
+   \label{fig:NLLpaff_AIC}
+\end{center}
+\end{figure}
+
+Previous studies suggest that observers may combine their observations of ambiguous visual elements with knowledge about a generative model in order to perform inferences about latent causes. The aim of the present study is to investigate how observers represent and compute over the intermediate ``nuisance'' variables entailed by these generative models, especially when those computations become intractable. To achieve this, we designed a task paradigm in which observers are asked to detect the presence of a latent cause (a ``pigeon feeder'') based on a large number of image fragments (the distribution of ``pigeons'' in a park). We then fit four different families of models, each of which represents the generative model's nuisance variables as either a point-estimate or full probability distribution.
+
+On ``feeder absent'' trials, the pigeons are drawn from a uniform distribution over the park. On ``feeder present'' trials, the pigeons are drawn from a mixture of a uniform and a Gaussian distribution, where the Gaussian is centred at the location of the hidden pigeon feeder. When the feeder is present, every pigeon has a 50\% chance of affiliation with it (i.e. a 50\% chance of having been drawn from the Gaussians). 
+
+We first characterize behavioural responses as a function of basic stimulus properties like ``pigeon density." As one might expect, subjects are more likely to respond ``feeder present" the more densely packed the pigeons are on screen. Intuitively again, when the distance between the two closest pigeons is very small (i.e., when the two closest pigeons are very close together), subjects are also more likely to respond ``feeder present." (Fig \ref{fig:summ_stats}) Nevertheless, subjects are surprisingly adept at telling apart trials when the feeder truly is or isn't present even when statistics like the ``mean distance" between points are controlled for across trials. This fact is evidenced by the vertical offset of the red and blue curves in Fig \ref{fig:summ_stats}. Therefore, from the outset, we see that if a summary statistic like density or minimum distance is represented, they cannot possibly be the only thing that subjects represent in order to make accurate judgements about spatial coincidence in this task.
+
+We next examine the trend in responses, broken down by ``feeder present" and ``feeder absent" trials, as the number of pigeons ($N$) varies. One unexpected finding is that the proportion of ``feeder present" responses increases as a simple function of the number of pigeons ($N$) (Fig \ref{fig:N4}), even for ``feeder absent" trials. In other words, as the number of uniformly drawn dots increases, subjects are more likely to sound a false alarm and report ``Feeder present". Examining model predictions, we see that this unexpected qualitative trend is at odds with the Strong Bayesian hypothesis (Fig \ref{fig:N4})-- intuitively, if we were able to reason optimally, observing more dots drawn from a uniform distribution should make us more certain that the distribution is in fact uniform. Instead, we see that the number of ``feeder present" responses increases with increasing $N$. %We see this qualitative deviation from Bayesian optimality as the upward slope of the blue curve in Fig \ref{fig:N4} against the downward slope of the curve predicted by the Bayesian model. 
+Henceforth, we refer to the slope of this curve as the ``effect of $N$ on false alarms.” 
+
+We next ask whether the strong Bayesian model can be rescued by fitting a different prior over category (or decision criterion) for each $N$. We tested this Bayes variant (see Model A2, \ref{fig:model_accounting} Fig), which allowed for flexible, $N$-dependent decision criteria, to see whether the increasing effect of $N$ on false alarms seen in the data might be accounted for by a Bayesian model with suboptimal decision criteria (see \ref{fig:ks} and \ref{fig:ks_paff} Figs for the fitted decision criteria for each model). On this modified Bayesian model, subjects are calculating the decision variable (log likelihood ratio) in a perfectly Bayesian way, but may have a different decision criterion for each $N$, such that they are generally more permissive of ``Feeder present" reports as the total number of pigeons increases. Together, S7 and S8 Figs show that the flexible criterion Bayesian model (A2), among many other models, may correctly capture the effect of $N$ on false alarms by adopting a more liberal criterion for declaring ``feeder present” as $N$ grows larger.
+
+We moreover tested another permissive variant of the Bayesian model which allowed for subjects to have incorrectly internalized the spread of pigeons around the feeder ($\sigma$), and the spread of the feeder around the center of the park ($\sigma_s$). We turned both of these variables into free parameters in model A3 (producing a $\sigma$- and $\sigma_s$- flexible variant of the Bayesian model), but this flexible variant performed similarly poorly to the ideal Bayes model (See Fig \ref{fig:slopeaccuracy}, model A3).
+
+To further visualize model performance, we next examined ``Feeder present" trials in greater detail. Recall that during ``feeder present" trials, the generative model was such that any one pigeon had a 50\% chance of being ``affiliated" with the feeder (i.e., drawn from the feeder-centered Gaussian distribution). As a result, some ``feeder present" trials have more affiliated pigeons than others (following a binomial distribution over ``feeder present" trials). We would expect trials with a greater number of affiliated pigeons to be more easily assessed as ``Feeder present" trials. As expected, for ``feeder present" trials, subjects are more likely to correctly respond ``feeder present" as the proportion of affiliated pigeons increases, and are more likely to incorrectly respond ``feeder absent" as the proportion of unaffiliated pigeons increases (Fig \ref{fig:N}). We show that the Strong Bayesian model manages to capture these general trends, but that it provides a rather crude fit to the data. The modified Bayesian model with $N$-dependent decision criteria better captures these data. (\ref{fig:paff_fig_NC1C0} Fig)
+
+In sum, a Bayesian model with flexible, $N$-dependent criterion (A2) captures subject data well on a number of dimensions. Nevertheless, it still provides an implausible process-level account of the cognitive process, as it requires marginalizing over $2^N$ distinct representations. We next asked whether other models which do not require this taxing marginalization over both variables of the generative model (Families B, C, and D) are able to fit subject data as well as model A2. 
+
+To summarize performance over the full range of models, we show two of the most informative aspects of model performance: the model's predicted effect of $N$ on false alarms, and the overall predicted subject accuracy (\% correct) in Fig \ref{fig:slopeaccuracy}. Notably, a number of partially committal models (those of Families B, C, and D) perform just as well as the modified Bayesian model A2 on these dimensions. While the ideal Bayesian model A1 predicts subject accuracy reasonably well, it is one of the only that predicts the wrong direction of the effect of $N$ on false alarms. Family H models may predict the correct direction of the effect of $N$ on false alarms, but are much farther afield in terms of predictions of overall accuracy.
+
+Formal model comparison using Akaike Information Criterion (Fig \ref{fig:NLL_AIC}) shows that each of the three ``Weak Bayesian" families (B,C, and D) present at least one strong contender for the model that best fits subject data: B6 (in which $\mu$ is committed to via estimate of the posterior mean), C7 (in which $\mathbf{z}$ is committed to via maximizing the marginal likelihood), C8 (in which  $\mathbf{z}$ is committed to via agglomerative clustering), and D9 (in which both $\mu$ and $\mathbf{z}$ are jointly committed to via maximizing the joint posterior). These results hold for model comparison via Bayesian Information Criterion (see \ref{fig:NLL_BIC} Fig).
+
+Lastly, it’s possible that subjects have not properly learned that the probability of affiliation of a given pigeon is 0.5, and instead hold the false belief that probability of affiliation is $N$-dependent. We tested family A, B, C, and D models again but allowed for probability of affiliation to vary by $N$ (See Fig \ref{fig:NLLpaff_AIC} for model comparison, \ref{fig:model_accounting} Fig for model parameters, and \ref{fig:paffall} Fig for fitted $p_{aff}$ values for each $N$ for each model). For instance, subjects may have a different internalized probability of affiliation for each $N$, such that they generally believe the feeder to have a higher probability of producing affiliated pigeons when the number of pigeons decreases. This might similarly work to account for the effect of $N$ on false alarms: it would mean that subjects require higher clustering to declare ``Feeder present” on low-$N$ trials, because  ``Feeder present”  as the total number of pigeons increases. We see that with this variation, the Bayesian model can be rescued (see Fig \ref{fig:NLLpaff_AIC} model A1 vs. A2 and \ref{fig:paff_fig_NC1C0} Fig model A1P vs. A2P). A number of family B and D models also become indistinguishably well-fitting with the additional $N$-dependent free $p_\text{aff}$ parameters. On this assumption of false belief, models B6P, D9P, 10DP, and 11DP marginally outperform A2P, C7P, and C8P.
+
+Among the basic (non-false-belief) set of winning models, Agglomerative clustering (C8) is the only one of the four winning models that evades the combinatorially explosive marginalization step over $\mathbf{z}$ while also providing a potential process-level model of mental representation in the brain, and may be able to account for choice, reaction time, and confidence rating data simultaneously. Figs \ref{fig:predictedRTs} and \ref{fig:conf_corr} show that the approximate log likelihood ratio given by the agglomerative clustering algorithm tracks both reaction times and confidence ratings in a similar manner to that of the Bayes-optimal log likelihood ratio, and Fig \ref{fig:predictedRTs} suggests that the number of iterations performed by the agglomerative clustering algorithm is comparable to the reaction times of participants for trials binned by agglomerative clustering approximated LLRs. Importantly, Figures \ref{fig:N} and \ref{fig:N4} demonstrate that the agglomerative clustering model is able to provide a superior fit to response data compared to the Bayesian model (A1) and an indistinguishably good fit to the other three basic winning models (Fig \ref{fig:NLL_AIC}). 
+
+\begin{tcolorbox}
+{\bf Box 1.} The Agglomerative Clustering algorithm is as follows:
+\begin{enumerate}[nolistsep]
+    \item Pick a starting pigeon at random, to seed the cluster. 
+    \item Evaluate the log likelihood ratio (LLR): that is, the marginal likelihood that that cluster was generated by the Gaussian (and the rest by the uniform) against the marginal likelihood that all points were generated by the uniform distribution.
+    \item Add the next-nearest point to the cluster. Repeat step 2. 
+    \item If adding that next-nearest point caused the log likelihood ratio to decrease from the previous iteration, stop. The current LLR is the best LLR for this seed. Otherwise, repeat step 3.
+    \item Calculate the highest of all best LLRs across all starting cluster seeds (i.e. repeat 1-4 with each pigeon as the starting pigeon).
+    \item Use the highest possible LLR as a decision variable (where, if it exceeds some noisy threshold, the subject responds ``feeder present").
+\end{enumerate}
+\end{tcolorbox}
+
+In Agglomerative Clustering, the observer commits to a particular $\mathbf{z}$ rather than representing a full probability distribution. We choose this $\mathbf{z}$ by picking a single point as the cluster ``seed." The cluster is hypothesized to belong to the causal source. One iteratively adds the next-nearest point to the cluster, each time evaluating the log likelihood ratio which results from that particular $\mathbf{z}$. We continue adding points until the log likelihood ratio no longer increases, resulting in some spatially contiguous set of points hypothesized to belong to the source if such a source exists, represented by the committed $\mathbf{z}$. The $\mathbf{z}$-dependent log likelihood ratio is then calculated as a decision variable with noisy threshold. This algorithm is loosely based on work by Heller and Gharamani on agglomerative hierarchical clustering \cite{heller2005bayesian}. Our algorithm is sequential rather than hierarchical, in that a single cluster is defined and single observations are merged to the existing cluster via Bayesian hypothesis testing (i.e., the evaluation of the log likelihood ratio). For a histogram comparing the Bayesian LLR to the Agglomerative Clustering approximation of the LLR, see Fig \ref{fig:LLR}.
+
+\ref{fig:ks} Fig shows fitted decision criteria for each model across subjects. There are a number of factors that contribute to the fitted decision criterion across models-- for instance, the goodness of the committed variables, and the subject's fitted $p_{aff}$ beliefs. Some models commit to a particular $\mu$ or $z$ that is particularly good, thereby biasing the log posterior ratio estimates to higher values. Overall positive decision criteria might therefore be expected if the committed variables are quite good-- for example, Model 9 evaluates the LLR at only the $\mu$ and $z$ that maximizes the joint posterior, meaning the estimated LLR for a given trial will shift upwards (see \ref{fig:didactic} Fig, panel A). Similarly, models with $p_{aff} > 0.5$ may cause the decision variable distributions (and therefore the fitted decision criteria) to shift downwards. If the probability of affiliation for the feeder present ($C=1$) hypothesis is higher than 0.5, then it should take a greater amount of dot ``clustering'' to support the feeder present hypothesis, and the observer's decision variable on a given trial will shift lower, in the direction of the feeder absent ($C=0$) hypothesis (see \ref{fig:didactic} Fig, panel B). Note that the decision variable's zero-point is only meaningful for the perfect Bayesian model (since a Bayesian observer should set their decision criterion to zero), whereas observers likely set a different decision threshold when the log posterior ratio is estimated (as in all other models), in compensation for the fact that these estimates produce shifts in both $C=0$ and $C=1$ distributions.
+
+Decision variables (ex, the Bayesian log likelihood ratio, or suboptimal estimates of it) largely tracked confidence ratings and reaction times in expected ways. Confidence ratings reliably tracked Bayesian log likelihood ratios in a monotonic manner (\ref{fig:conf_corr} Fig). High-confidence ``Feeder present" responses corresponded to high positive log likelihood ratios, while high-confidence ``Feeder absent" responses tracked low negative log likelihood ratios. Reports of higher confidence were also related to shorter reaction times (\ref{fig:RT_by_resp} Fig). Trials which fell into the highest positive LLR quantile (highly clustered pigeon configurations which greatly favour ``Feeder present" responses) were also related to shorter reaction times. 
+
+Notably, Agglomerative Clustering, being the only model with a structured iterative ``time course'', is able to predict trends in reaction time data (Fig \ref{fig:predictedRTs}). When binning stimuli based on their estimated LLRs, trends in the number of iterations required of the agglomerative clustering algorithm mirror trends in subject reaction times, as seen in (Fig \ref{fig:predictedRTs}. For most subjects (8 out of 10), there is a very weak but significant ($p<0.001$) ranked correlation between the reaction times and the number of iterations of the agglomerative clustering algorithm across trials (across subjects, mean Spearman $\rho$ across subjects = 0.12, SEM = 0.02).
+
+\begin{figure}[th!]
+\begin{center}
+%   \includegraphics[width=\textwidth]{Fig9.tif}  
+   \caption{(A) Subject reaction times and (B) Predicted reaction times (based on the number of iterations of the agglomerative clustering algorithm), according to the log likelihood ratios (LLR) of the Bayesian model, binned into 10 LLR quantiles (equal number of trials in each plot point).} 
+   \label{fig:predictedRTs}
+\end{center}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+%   \includegraphics[width=0.6\textwidth]{Fig10.tiff}  
+   \caption{Histogram of decision variables across trials, pooled across all subjects (2000 trials x 10 subjects, plotted in 35 equal bins from -10 to 25). The decision variable is the log likelihood ratio for Bayes (A1), and an estimated log likelihood ratio for agglomerative clustering (C8), calculated based on the stimulus on each trial. Note that as the number of pigeons increases during feeder-absent trials, the distribution of the decision variable for agglomerative clustering shifts to the right (light blue to dark blue lines), whereas the Bayesian decision variable exhibits the opposite trend.} 
+   \label{fig:LLR}
+\end{center}
+\end{figure}
+
+
+\section*{Discussion}
+In this paper, we asked how people infer the presence or absence of a latent cause based on a spatial configuration of items, especially when optimal inference would require the integration of a computationally intractable number of world states. We first asked whether observer models that make inferences over aspects of the true generative model (i.e., Bayesian models and point-estimating variants) accounted better for human behaviour than models based on simple visual heuristics, such as  mean density  or  minimal distance. We found that this was the case, with the heuristic models deviating greatly from the data. We  fitted three families of partially committal or point-estimating models, in each of which either or both of the  nuisance variables of the generative model were represented as point estimates rather than probability distributions. We found that the Bayesian model (which represents both generative model variables as full probability distributions) exhibits qualitative deviations from subject behaviour. Notably, the Bayesian model fails to capture the trend that observers are more likely to falsely detect a latent cause as the number of visual elements increased. Several point estimate observer models -- at least one from each family -- can account for these deviations, as well as for fine-grained subject behaviour in its entirety. Therefore, point estimate representation of certain generative model variables may be how the brain performs causal inference, especially when full marginalization over these variables requires accounting for a large number of world states.
+
+In context of this complex latent cause detection task, the effect of the number of observations on false alarm rates was strong. Recent work tested the ability of subjects to infer a hidden low-level variable (the proportion of red vs. blue team supporters leaving a given airplane) based on both observations of differently sized samples, and an inferred higher-level contextual variable (the general red or blue-team bias for a set of planes).  \cite{schustek2019human} show that inferred context is integrated with observations to inform confidence estimate, and notably that the sample size of previous observations guides context reliability. The sample size of observations may therefore be a factor that subjects take into consideration when performing hierarchical latent variable inference in the real world, affecting both choice and confidence judgements. In the case of our study, however, subjects suboptimally set a more liberal detection criterion as sample size increased, perhaps reflecting certain real-world prior beliefs that a greater number of observations provides evidence for the presence of a latent spatial cause, regardless of the distribution of the observations.
+
+Among the basic set of models (that do not make false belief assumptions about the probability of feeder affiliation),  the four best-performing models (B6, C7, C8, D9) were  functionally indistinguishable according to AIC and BIC. However, taking seriously the computations required of some of these winning models at the algorithmic level would still mean granting the brain upwards of $2^N$ evaluations in the case of marginalization over $\mathbf{z}$. 
+The agglomerative clustering account (C8) stands out because the number of operations required to commit to a plausible partition is less than $\mathcal{O}(N^2)$, making it a more attractive candidate as a biologically plausible algorithm compared to any of the other three statistically indistinguishable partially Bayesian models. The algorithm further coheres with intuitions that the least plausible possibilities of $\mathbf{z}$ may not be represented or considered at all during the decision-making process. The iterative nature of the agglomerative clustering algorithm moreover allows it to predict response times, whereas the Bayesian model and variants thereof do not provide an immediate mechanism to do so.
+ 
+However, the present study only reflects a small sampling of the possible models in each tested family. This means that we have to be cautious when making any inferences about which generative model variables may be committed to as a point estimate. The study is also limited in its ability to provide an explanation for why the brain may represent certain generative model variables as point estimates while representing others as full probability distributions.  Nevertheless, the models tested represent a new and more or less principled category of approximately Bayesian algorithms, distinct from sampling and variational algorithms.
+
+% This means that it is difficult, based on behavioural modelling alone, to definitively determine what exact kind of point estimate observer model may be the one implemented at the algorithmic level by the brain on this kind of causal inference task.
+
+% Lastly, the motivation for this study was built on a common but only weakly supported assumption. We began by asking how it is that the brain may perform inference over generative models even when the marginalizations involved become computationally intractable. Implicit in this charge of ``computational intractability'' is already the assumption that the calculations required of a well-fitting computational model monotonically scale with actual resources and/ or representations in the brain, as though these Bayesian-style observer models are in some way already mechanistic. This does not have to be the case, and in fact, there is only meagre (though growing) evidence that the brain performs full Bayesian inference in anything more than just an ``as if'' capacity.
+
+% By ``as if'' models, we mean models that might only be thought of as a black box mapping between stimulus and response, much like black box neural network models of behaviour, where the specific form and contents of the model have no bearing on the actual representations or computational steps performed by the brain. Some research methods and frameworks (e.g. Bayesian transfer \cite{maloney2009bayesian} and resource rationality \cite{lieder2020resource}) have begun to make progress on this research problem, for instance, in the case of Bayesian transfer, by positing modular representations that can be ``swapped out'' from task to task. Similar in spirit to Bayesian transfer, our observer models (apart from the heuristic family) posited that observers learned and represented a generative model (including, for example, certain priors as well as knowledge about the stimulus generation structure) and that they calculated and swapped out a different ``likelihood'' on every trial. The finding that these observer models greatly outperform those which employ a heuristic strategy contributes to growing evidence for the claim that, on many perceptual decision-making tasks, the key variables of the generative model are in fact learned, and that an approximately Bayesian algorithm is in fact implemented by observers in more than just an ``as if'' capacity.
+
+These results advance an understanding of perceptual grouping and causal inference based on spatially-related image elements, suggesting that, while observers likely represent the structure of the generative model, they probably do not represent full probability distributions and marginalize over each nuisance variable. Committing to the representation of some nuisance variables as point estimates may be one strategy employed by the brain to avoid computationally costly marginalizations in real-world visual environments, if these marginalizations are in fact shown to be costly to the brain. Though the present study cannot shed light on why some variables may be represented as full probability distributions but not others, testing algorithms that implement these partially committal models may be a fruitful inductive modelling approach for other perceptual decision-making tasks, as they may help reformulate intractable ``as if'' Bayesian computations in terms of a set of tractable process-level algorithms potentially used by the brain. 
+
+\section*{Methods} \label{Methods}
+\subsection*{Ethics Statement}
+This experiment was approved by the University Committee on Activities Involving Human Subjects of New York University (IRB-FY2019-2490). All subjects were naive to the purpose of the experiment and written informed consent was given by each subject at the start of the first session.
+
+\subsection*{Subjects}
+10 subjects (6 male), aged 19-39, completed the experiment in two 30-45 minute sessions spaced at least 4 hours apart. Subjects received \$12 per session and a \$12 completion bonus. 
+
+\subsection*{Apparatus} Subjects were seated in a well-lit room, and stimuli were displayed using a 13.3-inch (1440 x 900) MacBook Air (early 2015 model, Intel HD Graphics 6000 1536 MB). Responses were given on the laptop keyboard. The experiment was run using the Psychtoolbox-3 (V3.0.14) package for MATLAB 9.2.
+\subsection*{Stimuli.} The background for all displays was black. Stimulus dots (denoting pigeon locations) were white. Dots were displayed within a circular arena measuring 7 cm in radius positioned at the center of the laptop screen. The circular perimeter of the arena was marked with a thin gray line.
+%([ ] $cd/m^2$).
+
+\subsection*{Procedure}
+\subsubsection*{Trial structure}  Subjects completed two 30-45 minute sessions, spaced at least 4 hours apart. The first session began with a detailed set of instructions delivered verbally and repeated again in writing before the start of each session. Each subject completed 2000 trials in total, split evenly between the two sessions. Each session contained 5 blocks (200 trials per block), and lasted approximately 6 minutes (approximately 1.8 seconds per trial).
+\subsubsection*{Instructions and category training}
+At the beginning of the first session, subjects completed a 10-minute demo which explained the task with visual examples and provided 10 practice trials on which full feedback is given. Subjects scrolled through the tutorial at their own pace. The demo first introduced, in writing and with visuals, the boundaries of the park (the circle), the center of the park (denoted by a grey cross), and the pigeons (denoted by white dots). It was next explained that ``On HALF (50\%) of the days, there is no pigeon feeder. This means pigeons were scattered randomly within the circle..." and that `` With NO FEEDER, the pigeons are all UNAFFILIATED PIGEONS." This was followed by 10 randomly drawn examples of pigeon configurations with no pigeon feeder present (C=0). \\\\
+Next, the pigeon feeder was introduced (denoted by a dot of a different colour). The pigeon feeder was introduced as ``... a lonely old ghost who appears in the park on 50\% of the days. She typically appears near the center of the park, but she tends to stray." 10 randomly drawn examples were then given of the pigeon feeder's location. It was explained that on exactly ``50\%" of all days, the pigeon feeder visits the park, but cannot be observed directly. Lastly, the pigeon distribution on ``feeder present" days was explained and demonstrated: ``When the pigeon feeder is present, pigeons tend to cluster around her location. But even pigeons can't always sense her presence. Even when the feeder is present, there's only a 50\% chance that a given pigeon will be AFFILIATED with her." This was then followed by 10 examples of the park when the feeder was present. On these displays, subjects were instructed to toggle the space bar to reveal the true location of the feeder, as well as to reveal the pigeons which were affiliated vs. unaffiliated with the feeder (these dots appear in different colours on the screen). Subjects were then instructed to tell apart the days on which the ghostly pigeon feeder is absent (left-hand) vs. present (right-hand), and were instructed to use the full range of confidence values when they respond. \\\\ The tutorial was followed by 20 practice trials on which full feedback was given-- the response was marked as correct or incorrect, and for ``feeder present" trials, the location of the feeder as well as the unaffiliated and affiliated pigeons were revealed. These practice trials were not included in the main analysis. See github.com/jennlauralee/pigeons to run the full demo on MATLAB (requires Psychtoolbox).
+
+\subsubsection*{Testing} At the beginning of each testing block,  instructions were displayed on the screen which show the mapping of keyboard buttons to confidence and category responses. At the end of each trial, subjects received partial feedback about whether their categorization was correct or incorrect (ex, ``Incorrect! You reported absent. The feeder was present.") Subjects completed 200 trials per block, with five blocks per session. Subjects were able to take breaks between blocks. 
+
+
+\appendix
+\section*{Model derivations}
+
+Below, we introduce the notation used for all models and formalize the true generative model that determines how observations are in fact generated based on stimulus category. Then, we formalize each of the observer models within the five observer model families, each of which perform full (family A) or partial (families B, C, D) generative model inferences about stimulus category based on observations, or which simply employ a heuristic decision model (family H).
+
+\subsection*{Notation}
+All location variables have two dimensions, but we do not denote them as vectors (with boldface). We reserve boldface notation for vectors corresponding to $N$ observations.\\
+
+\noindent
+\begin{tabular}{|l|p{4in}|}
+\hline
+$C$ & Latent cause variable (0 if absent, 1 if present)\\
+$p_{\text{aff}}$ & Probability that an observation is drawn from the latent cause, when $C=1$ $(p_{\text{aff}}=0.5$ in the experiment)\\
+$R$ & Radius of disc from which each ``background'' (non-latent-cause) observation is drawn\\
+ $\mu$ & Location of latent cause\\
+$\sigs$ & Standard deviation of circular Gaussian distribution with mean $\mathbf{0}$ from which $\mu$ is drawn\\
+$x_i$ & $i^\text{th}$ observation\\
+$\mathbf{x}$ & Set of all observations, $\left\{\xx_1, \dots, \xx_N\right\}$\\
+$\sigma$ & Standard deviation of circular Gaussian distribution with mean  $\mu$ from which each latent-cause observation is  independently drawn\\
+$z_i$ & Binary variable that takes the value 1 if $x_i$ is drawn from the latent cause and 0 if $x_i$ is drawn from the background\\
+$\sigma_d$ & Standard deviation of response noise\\
+$\lambda$ & Lapse rate\\
+\hline
+\end{tabular}
+
+
+
+\subsection*{Generative model}
+Here we discuss the generative model that determines how pigeon locations are generated in the circular park based on stimulus category.
+\subsubsection*{Category}
+The experimenter designates each trial randomly as either a ``Feeder Present'' ($C=1$) or ``Feeder Absent'' ($C=0$) trial. There are an equal number of feeder present and absent trials such that
+\begin{align}
+    p(C=0) &= p(C=1) = 0.5
+\end{align}
+If $C=0$, the distribution of each observation is uniform on a disc:
+\begin{numcases}{p(x_i|C=0)=}
+   \frac{1}{\pi R^2} & $\mathrm{for}||x_i||<R$
+   \\
+   0 & $\mathrm{otherwise}$
+\end{numcases}
+If $C=1$, the pigeon feeder is present, and its location $\mu$ is drawn from a Gaussian centered at the middle of the circular park (position (0,0)) with standard deviation $\sigma_s$.
+\begin{align}
+    p(\mu|C=1) &= \mathcal{N}(\mu;(0,0),\sigs^2I),
+\end{align}
+where $I$ is the two-dimensional identity matrix.
+For a given $\mu$, the pigeon locations are independent
+ \begin{align}
+p(\xx|\mu, C=1) = \prod_{i=1}^N p(x_i|\mu, C=1)
+\end{align}
+For each of $N$ pigeons drawn on a given trial, there is a $p_\text{aff}$ chance that the pigeon is affiliated with the pigeon feeder (in the experiment, $p_\text{aff} = 0.5$). 
+If a pigeon is not affiliated ($z_i = 0$), its location is drawn from a uniform distribution on a disc of radius $R$ centered on the center of the screen:
+
+\begin{numcases}{p(x_i|z_i=0, C=1) =}
+   \frac{1}{\pi R^2} & $\mathrm{for} ||x_i||<R$
+   \\
+   0 & \mathrm{otherwise}
+\end{numcases}
+If the pigeon is affiliated with the feeder ($z_i = 1$), then the pigeon's location is drawn from a smaller Gaussian distribution centered at the location of the pigeon feeder ($\mu$) with standard deviation $\sigma$:
+\begin{align}
+p(x_i|z_i=1, \mu, C=1) = \mathcal{N}(x_i;\mu,\sig^2\mathbf{I})
+\end{align}
+This means the distribution of pigeon observations is a mixture of a Gaussian distribution centered at $\mu$ and a uniform distribution on the same disc:
+\begin{numcases}{p(x_i|\mu,C=1) =}
+   p_{\text{aff}} \mathcal{N}(x_i;\mu, \sig^2I) + \frac{1-p_{\text{aff}}}{\pi R^2} & $\mathrm{for}~||x_i||<R$
+   \\
+   \mathcal{N}(x_i;\mu, \sig^2I)& \mathrm{otherwise}. 
+\end{numcases}
+Through our choice of $\sigs$ and $\sig$, the latter case where $||x_i|| > R$, in which the location of a generated pigeon falls outside of the perimeter of the circular park, rarely occurs. We ignore this case moving forward.
+
+% The joint distribution of $N$ observations $D=\left\{\xx_1, \dots, \xx_N\right\}$ and $\mu$ is
+% \be
+% p(D,\mu|C=1) = p(\mu|C=1) \prod_{i=1}^N p(\xx_i|\mu,C=1).
+% \ee
+% Since $p(\xx_i|\mu,C=1)$ has two components, $p(D,\mu|C=1)$ has $2^N$ Gaussian components. It can also be written using an auxiliary variable $\mathbf{z}$ of length $N$, which specifies for each observation whether it was drawn from the Gaussian ($z_i=1$) or the uniform distribution ($z_i=0$). Then
+% \be
+% p(D,\mu|C=1) = p(\mu|C=1) \mathlarger{\mathlarger{\sum}}_{\mathbf{z}}  \left( \frac{p_{\text{aff}}^{N_1(\zz)}(1-p_{\text{aff}})^{N_0(\zz)}}{(\pi R^2)^{N_0(\zz)}} \prod_{i:z_i=1} \mathcal{N}(\xx_i;\mu, \sig^2\mathbf{I}) \right),
+% \ee
+% where $N_0(\zz)$ and $N_1(\zz)$ are the number of 0's and 1's in $\zz$, respectively.
+
+\subsection*{Observer models}
+Next, we discuss observer models that assume some knowledge of the generative model and invert the model to perform inference about the trial's category (feeder absent or present) based on pigeon location observations.
+
+\subsubsection*{Bayes-optimal model}
+Given $N$ observations $\mathbf{x}=\left\{x_1, \dots, x_N\right\}$, the observer is tasked to infer category $C$. The log posterior ratio is
+\begin{align}
+d &= \log \frac{p(C=1|\mathbf{x})}{p(C=0|\mathbf{x})} = \log \frac{p(C=1)}{p(C=0)} + \log \frac{p(\mathbf{x}|C=1)}{p(\mathbf{x}|C=0)}
+\end{align}
+Since $p(C=0) = p(C=1) = 0.5$, we have 
+\begin{align}
+d &= \log \frac{L_1}{L_0},
+\end{align}
+where we have introduced the following notation for the category likelihoods:
+\begin{align}
+L_0 & \equiv p(\mathbf{x}|C=0);\\
+L_1 & \equiv p(\mathbf{x}|C=1).\label{l1}
+\end{align}
+Before we evaluate these expressions further, we first comment on how the observer would make a decision based on $d$. An observer who maximizes probability correct will report $C=1$ when $d>0$. However, an observer may have utilities or costs that are unequal between $C=0$ and $C=1$, such as unequal degrees of satisfaction for correctly reporting the presence of the latent cause than for correctly reporting its absence, or a higher motor cost for pressing a button with the non-preferred hand (in our experiment, hands corresponded one-to-one to category responses). Due to such factors, which we do not model explicitly, the optimal Bayesian decision-maker might use a decision criterion that is different from 0 and might even depend on the number of observations. Since criterion-setting is not the subject of our study, we remain as agnostic as possible about the criteria: we assume that the Bayesian observer reports $C=1$ when $d>k$, where $k$ is fit as a free parameter.  Incidentally, this also allows for a mismatched prior over $C$, although this would be a deviation from strictly optimal decision-making. 
+
+In addition, we allow for decision noise, which we model as Gaussian noise on the log posterior ratio $d$, with a variance that we denote by $\sigma_d$. Finally, we allow for a lapse rate $\lambda$; this is the probability of randomly choosing either category with probability 0.5. Putting everything together, the probability of reporting $C=1$ becomes
+\begin{empheq}[box=\fbox]{align}
+    p(\hat{C} = 1|\mathbf{x}) &= 0.5\lambda + (1-\lambda) \Phi\Big(\log \frac{L_1}{L_0}; k, \sigma_d^2\Big)
+\end{empheq}
+We now return to the calculation of the likelihoods of both categories, from Eq. \eqref{l1}.
+The likelihood of the hypothesis $C=0$ is simply
+\begin{align}
+  L_0 = \frac{1}{(\pi R^2)^N},
+\end{align}
+whereas the likelihood of the hypothesis $C=1$ is obtained by marginalizing over all variables in the generative model other than $C$ and $\mathbf{x}$, that is, over $\zz$ and $\mu$:
+\begin{empheq}[box=\fbox]{align}
+L_1 & =  p(\mathbf{x}|C=1)\\
+& = \sum_\zz \int p(\mathbf{x}|\zz,\mu, C=1) p(\zz)p(\mu)d\mu,\\
+& = \sum_\zz \int L(\zz, \mu)p(\zz)p(\mu)d\mu,
+\end{empheq}
+where $p(\mathbf{z})$ is the probability of the vector of affiliations and $L(\zz, \mu) \equiv  p(\mathbf{x}|\zz,\mu, C=1) $ is the joint likelihood of the combination $(\zz, \mu)$ under the $C=1$ hypothesis. The former is equal to 
+\begin{align}
+    p(\mathbf{z}) &=  (1-p_\text{aff})^{N_0(\mathbf{z})}p_\text{aff}^{N_1(\mathbf{z})}
+\end{align}
+
+where $N_0$ and $N_1$ are the number of unaffiliated and affiliated pigeons.
+
+We further evaluate the joint likelihood by using the property that the pigeon locations are drawn independently, that the location of an unaffiliated pigeon ($z_i=0$) is drawn from a uniform distribution on a disc, and that the location of an affiliated pigeon ($z_i=1$) is drawn from a normal distribution with mean $\mu$ and standard deviation $\sigma$:
+\begin{empheq}{align}
+L(\zz, \mu) & = \prod_{i=1}^N p(x_i|z_i, \mu, C=1)\\
+& =  \left( \frac{1}{\pi R^2} \right)^{N_0(\zz)} \left(\prod_{i:z_i=1} p(x_i|z_i=1, \mu, C=1)\right)\\
+& = \left( \frac{1}{\pi R^2} \right)^{N_0(\zz)} \left(\prod_{i:z_i=1} \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})\right)
+\end{empheq}
+
+
+
+We can write $L_1$ in two equivalent ``two-step" ways. The first is in terms of a likelihood over $\zz$:
+
+\begin{empheq}[box=\fbox]{align}
+L_1 & = \sum_\zz L(\zz)p(\zz) \label{L1Lz}\\
+L(\zz) & \equiv \int L(\zz, \mu) p(\mu) d\mu\label{Lz}\\
+& =  p(\xx|\zz, C=1).
+\end{empheq}
+The second is in terms of a likelihood over $\mu$:
+\begin{empheq}[box=\fbox]{align}
+L_1 & = \int L(\mu)p(\mu)d\mu,\\
+L(\mu) & \equiv  \sum_\zz L(\zz, \mu)p(\zz)\\
+& =  p(\xx|\mu, C=1).
+\end{empheq}
+Here, $L(\mu)$ can be written in multiple equivalent ways:
+\begin{empheq}{align}
+L(\mu)
+& = \sum_\zz p(\zz)\prod_{i=1}^N \left(p(x_i|z_i, \mu, C=1)\right) \\
+& = \sum_\zz p(\zz) \left(\frac{1}{\pi R^2}\right)^{N_0(\zz)} \prod_{x_i:z_i=1} \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I}) \label{likelihood}\\
+L(\mu) & = \prod_{i=1}^N \sum_{z_i=0}^1 \left(p(x_i|z_i, \mu, C=1)p(z_i)\right)\\
+& = \prod_{i=1}^N  \left(\frac{1-p_{\text{aff}}}{\pi R^2} + p_{\text{aff}} \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})\right)
+\end{empheq}
+
+For all suboptimal models, we consider different ways of approximating the evidence for the causal model (i.e. the ``feeder persent" likelihood). The notation for this approximation is $\tilde{L}_1$.\\\
+
+\subsection*{Model Descriptions}
+
+%%% A %%%
+\subsubsection*{Family A -- Marginalize over both $\mu$ and $z$} 
+Family A models include the Bayes-optimal model and two variants that allow for false beliefs about the generative model.
+\begin{enumerate}[label=A(\arabic*)]
+\item Strong Bayes-optimal model \newline
+The strong Bayes-optimal model is as described above. $p_\text{aff} = 0.5$ in all default models, but an $N$-dependent flexible $p_\text{aff}$ variant of most models is also fit, to reflect the hypothesis that subjects may have different baseline priors or propensities to report $C=1$ as the number of pigeons $N$ increases.
+\item Bayes-optimal model with N-dependent decision criteria \newline
+A variant of the Bayesian model where a separate decision criterion $K_N$ is fit for each of $N=6, 9, 12, 15$ pigeons. Model A1 reflects a strong Bayesian model with one fitted decision criterion, while model A2 reflects a modification of the Bayesian model with four decision criteria fitted per subject. We equip all alternative models with the same N-dependent flexibility in criteria moving forward.
+
+\item Bayes-optimal model with flexible beliefs about $\sigma$ and $\sigma_s$ \newline
+A variant of the Bayesian model where we test false beliefs about the generative model by fitting $\sigma$ and $\sigma_s$ as free parameters.
+\end{enumerate}
+
+%%% B %%%
+\subsubsection*{Family B -- Commit to a single $\mu$, Marginalize over $z$} 
+Family B models employ the strategy of committing to a single hypothesized feeder location $\hat{\mu}$, then reasoning probabilistically over all possible combinations of each point having been generated from the feeder distribution or the uniform background distribution. The general form of the suboptimality is 
+\begin{align*}
+    \tilde{L}_1 &= L(\hat{\mu};\mathbf{x})\\
+    &= \sum_\mathbf{z}L(\mathbf{z},\hat{\mu};\mathbf{x})p(\mathbf{z})\\
+    &= \prod^N_{i=1}p(x_i|\hat{\mu})
+\end{align*}
+We tested 4 possible ways of arriving at $\hat{\mu}$. The first two benefit from easy heuristic interpretations, while the second two involve cognitively implausible computations. 
+\begin{enumerate}[label=B(\arabic*)]
+\setcounter{enumi}{3}
+\item Commit to $\mu$ as location of centroid
+\begin{align*}
+    \hat\mu &= \frac{\Sigma(\mathbf{x})}{N}
+\end{align*}
+\item Commit to $\mu$ as location of maximum local density
+\begin{itemize}
+    \item A Gaussian with $\sigma = 1.4$ cm (reflecting the statistics of bird dispersal around the bird feeder) is convolved along all possible locations of the arena, as a measure of the local density of dots at all possible locations on the screen. 
+    \item The location of the highest local density is taken as $\hat{\mu}$.
+\end{itemize}
+\item Commit to $\mu$ through posterior mean estimation
+\begin{align}
+\hat\mu = \int \mu\, p(\mu|\xx,C=1)d\mu \label{pme}
+\end{align}
+The posterior over $\mu$ is obtained by multiplying the prior over the distribution of $\mu$ by the likelihood in Eq. \eqref{likelihood}:
+\begin{align}
+p(\mu|\xx,C=1) & \propto 
+p(\mu) \sum_\zz  \frac{p(\zz)}{\left(\pi R^2\right)^{N_0(\zz)}} \prod_{x_i:z_i=1} \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})\\
+& = \sum_\zz \frac{p(\zz)}{\left(\pi R^2\right)^{N_0(\zz)}}
+p(\mu)\prod_{x_i:z_i=1}  \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})\\
+& =  \sum_\zz \frac{p(\zz)}{\left(\pi R^2\right)^{N_0(\zz)}}
+\mathcal{N}(\mu; 0,\sigma_\mu^2 \mathbf{I})\prod_{x_i:z_i=1}  \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})
+\end{align}
+This is a mixture of a product of Gaussians, with mixture weights 
+\begin{align}
+w(\zz) \equiv \frac{p(\zz)}{\left(\pi R^2\right)^{N_0(\zz)}}.
+\end{align}
+Writing the product of Gaussians as a single (unnormalized) Gaussian, we find
+\begin{align}
+p(\mu|\xx,C=1) & \propto \sum_\zz w(\zz)
+\mathcal{N}(\mu; 0,\sigma_\mu^2 \mathbf{I})\prod_{x_i:z_i=1}  \mathcal{N}(x_i; \mu, \sigma^2 \mathbf{I})\\
+& = \sum_\zz w(\zz)\tilde w(\xx,\zz)
+\mathcal{N}(\mu; m(\xx, \zz), v(\zz)),
+\end{align}
+where
+\begin{align}
+m(\xx, \zz) & = \frac{x_\text{sum}(\zz)}{N_1(\zz) + \frac{\sigma^2}{\sigma_\mu^2}}
+\\
+v(\zz) & = \frac{1}{\frac{1}{\sigma_\mu^2} + \frac{N_1(\zz)}{\sigma^2}} \mathbf{I} \\
+\tilde w(\xx,\zz) & = \frac{1}{1 + \frac{\sigma_\mu^2}{\sigma^2}N_1(\zz)} \frac{1}{(2\pi\sigma^2)^{N_1(\zz)}}\exp\left(-\frac{1}{2\sigma^2}\left[\displaystyle\left(\sum_{x_i:z_i=1}\!\! ||x_i||^2 \right)- \frac{||x_\text{sum}(\zz)||^2}{N_1(\zz) + \frac{\sigma^2}{\sigma_\mu^2} }\right]\right),
+\end{align}
+where $x_\text{sum} (\zz) =\displaystyle\sum_{x_i:z_i=1}x_i$.
+\end{enumerate}
+The normalized posterior is
+\begin{align}
+p(\mu|\xx,C=1)  = \frac{\sum_\zz w(\zz)\tilde w(\xx,\zz)
+\mathcal{N}(\mu; m(\xx, \zz), v(\zz))}{\sum_\zz 
+w(\zz)\tilde w(\xx,\zz)},
+\end{align}
+and the posterior mean estimate from Eq. \eqref{pme} is
+\begin{empheq}[box=\fbox]{align}
+\hat{\mu}_{PME}  = \frac{\displaystyle\sum_\zz w(\zz)\tilde w(\xx,\zz)
+m(\xx, \zz)}{\displaystyle\sum_\zz 
+w(\zz)\tilde w(\xx,\zz)}.
+\end{empheq}
+
+%%% C %%%
+\subsubsection*{Family C -- Marginalize over $\mu$, Commit to a single $z$} 
+Family C models employ the strategy of first selecting a group of points which are thought to belong to the feeder distribution. With this partition nailed down, the subject then reasons probabilistically over all possible feeder locations. The general form of the suboptimality is
+\begin{align*}
+    \tilde{L}_1 &= L(\mathbf{\hat{z}};\mathbf{x})\\
+    &= \int L(\mathbf{\hat{z}},\mu;\mathbf{x})p(\mu)d\mu
+\end{align*}
+\begin{enumerate}[label=C(\arabic*)]
+\setcounter{enumi}{7}
+\item Commit to $z$ as maximum marginal likelihood
+\begin{align*}
+    \tilde{L}_1 &= \underset{z}{\max}L(z;x)
+\end{align*}
+\item Commit to $z$ via agglomerative clustering
+\begin{itemize}
+    \item See agglomerative clustering box ({\bf Box 1})
+\end{itemize}
+\end{enumerate}
+
+%%% D %%%
+\subsubsection*{Family D -- Commit to both $\mu$ and $\mathbf{z}$} 
+General form of the Family D suboptimality is
+
+\begin{align*}
+    \tilde{L}_1 &= L(\mathbf{\hat{z}}, \hat{\mu};\mathbf{x})
+\end{align*}
+\begin{enumerate}[label=D(\arabic*)]
+\setcounter{enumi}{9}
+    \item Commit jointly to $\mu$ and $\mathbf{z}$ by maximizing the joint posterior
+        \begin{align*}
+        \tilde{L}_1 &= \underset{\mathbf{z},\mu}{\max}L(\mathbf{z},\mu;\mathbf{x})p(\mu)
+        \end{align*}
+    \item Commit jointly to $\mu$ and $\mathbf{z}$ by maximizing the joint likelihood
+        \begin{align*}
+        \tilde{L}_1 &= \underset{\mathbf{z},\mu}{\max}L(\mathbf{z},\mu;\mathbf{x})
+        \end{align*}
+    \item Commit jointly to $\mu$ and $\mathbf{z}$ via agglomerative clustering
+    \begin{itemize}
+        \item See agglomerative clustering box. ({bf Box 1.})
+    \end{itemize}
+    \item Commit to $\mu$ as location of centroid, then commit to $\mathbf{z}$  by setting an optimal radial threshold
+    \item Commit to $\mu$ as location of maximum local density, then commit to $\mathbf{z}$  by setting an optimal radial threshold 
+    \begin{itemize}
+    \item For D(13) and D(14): Given an estimate of $\mu$, the ML estimate of $\mathbf{z}$ amounts to applying a specific distance threshold
+    \end{itemize}
+    \begin{align*}
+        \hat{z_i} = 1 \text{ if } N(x_i,\hat{\mu},\sigma^2) > \frac{1}{\pi R^2} \Leftrightarrow	||x_i-\hat{\mu}|| < \sqrt{2\sigma^2 \log \frac{R^2}{2\sigma^2}}
+    \end{align*}
+\end{enumerate}
+
+%%% E %%%
+\subsubsection*{Family H -- Non-probabilistic Heuristic models}
+Five prima facie plausible heuristic models were developed based on basic first-pass intuitions about the task. \\
+Each heuristic model has the form
+\begin{align*}
+    p(\hat{C}=1|x) &= \Phi\Big(f(\mathbf{x});k_n,\sigma_d^2\Big),
+\end{align*}
+where $f(\mathbf{x})$ represents one of the following heuristics:
+\begin{enumerate}[label=H(\arabic*)]
+\setcounter{enumi}{9}
+\item Negative mean pairwise distance
+\begin{itemize}
+    \item The mean pairwise distance of all points is calculated as a measure of global dot density.
+    \item This number is made negative.
+    \item If this metric exceeds a noisy threshold, the model responds ``feeder present".
+\end{itemize} 
+\item Maximum local density
+\begin{itemize}
+    \item A Gaussian with $\sigma = 1.4$ cm (the true standard deviation of pigeon locations around the  feeder) is convolved with a map of the pigeon locations, as a measure of the local density of dots.
+    \item This number is made negative.
+    \item If this local density metric at any one location exceeds a noisy threshold, the model responds ``feeder present".
+\end{itemize} 
+\item Negative minimum pairwise distance
+\begin{itemize}
+    \item The distance between the two nearest points is calculated. 
+    \item This number is made negative.
+    \item If this least distance metric exceeds a noisy threshold, the model responds ``feeder present".
+\end{itemize} 
+\item Negative mean nearest-neighbour distance
+\begin{itemize}
+    \item The mean distance between all points and their nearest neighbour is calculated.
+    \item This number is made negative.
+    \item If this least distance metric exceeds a noisy threshold, the model responds ``feeder present".
+\end{itemize} 
+\item Fraction of points below some nearest-neighbour distance threshold
+\begin{itemize}
+    \item The mean distance between all points and their nearest neighbour is calculated.
+    \item This number is made negative.
+    \item If this least distance metric exceeds a noisy threshold, the model responds ``feeder present".
+\end{itemize} 
+\end{enumerate}
+
+We did not design our models to explicitly account for confidence responses. Modelling confidence predictions for each of the 8 possible confidence levels would have required an additional 7 decision boundaries, possibly multiplied by the 4 $N$ conditions, which would have introduced a large number of extra parameters without contributing additional understanding. Therefore, we chose to fit to choices only and subsequently make a zero-parameter prediction for confidence ratings.
+
+
+% \section*{Model Comparison}
+% \begin{tabular}{ |p{0.3cm}|p{7.5cm}||p{4cm}|p{4cm}|}
+%  \hline
+%  \multicolumn{4}{|c|}{Akaike / Bayesian Information Criterion results relative to best model (MJP)} \\ 
+% \multicolumn{4}{|c|}{(95\% bootstrapped confidence interval in brackets)} \\  
+
+%  \hline
+%   &Model name &$\Delta$AIC &$\Delta$BIC\\
+%  \hline
+%  \multirow{3}{*}{A}&(A1) Bayes   & -1859 [-3364, -999] & -1691 [-2994, -790] \\
+%                   &(A2) Bayes (flexible decision criteria)  &-99 [-583, 681] & -99 [-583, 634]\\
+%                   &(A3) Bayes (flexible $\sigma$, $\sigma_s$) &-1241 [-2639, -407] & -1185 [-2375, -317]\\
+%                   \hline 
+%  \multirow{4}{*}{B}&(B1) Centroid   &-1681 [-3083, -1075]  & -1681 [-2987, -1077]\\                
+%                   &(B2) Local density &-1155 [-1514, -857]  & -1155 [-1513, -868]\\
+%                   &(B3) Posterior mean estimate &0 [0, 0] & 0 [0, 0]\\
+%                     \hline
+%   \multirow{2}{*}{C}&(C1) Max marginal likelihood   &-303 [-846, 668] & -303 [-842, 569]\\          
+%                   &(C2) Agglomerative clustering &-335 [-872, 628] & -335 [-883, 537]\\
+%                     \hline
+%  \multirow{7}{*}{D}&(D1) Max joint posterior   &-65 [-268, 464] & -65 [-268, 433]\\                
+%                   &(D2) Max joint likelihood &-559 [-990, 276] & -559 [-985, 240]\\
+%                   &(D3) Agglomerative clustering &-667 [-1132, 250]  & -667 [-1122, 207]\\
+%                   &(D4) Centroid + optimal z thresh &-1121 [-1644, -440] & -1121 [-1671, -480]\\
+%                   &(D5) Local density + optimal z thresh &-1781 [-2266, -1264] & -1781 [-2307, -1289]\\
+%                     \hline
+%   \multirow{6}{*}{H}&(H1) Ratio below NN threshold   &-7119 [-8630, -5764] & -7287 [-8647, -5962]\\
+%                   &(H2) Summed local density &-8726 [-10411, -7025] & -8726 [-10506, -7027]\\
+%                   &(H3) Mean NN distance &-8429 [-10332, -6898] & -8429 [-10254, -6839]\\
+%                   &(H4) Min NN distance + optimal z thresh &-8688 [-10419, -7236] & -8688 [-10382, -7282]\\
+%                   &(H5) Max local density + optimal z thresh &-7081 [-8022, -5501] & -7081 [-8027, -5647]\\
+%                   &(H6) Global mean distance + optimal z thresh &-4665 [-6124, -3366] & -4665 [-6169, -3296]\\
+%  \hline
+% \end{tabular}
+
+% \section*{Data and code}
+% All relevant data and code for the experiment and analysis are available at
+% https://github.com/jennlauralee/pigeons.
+
+% \bibliographystyle{unsrt}
+\begin{thebibliography}{10}
+
+\bibitem{von1867handbuch}
+Von~Helmholtz H.
+\newblock Handbuch der physiologischen Optik: mit 213 in den Text eingedruckten
+  Holzschnitten und 11 Tafeln. vol.~9.
+\newblock Voss; 1867.
+
+\bibitem{ernst2002humans}
+Ernst MO, Banks MS.
+\newblock Humans integrate visual and haptic information in a statistically
+  optimal fashion.
+\newblock Nature. 2002;415(6870):429--433.
+
+\bibitem{kording2007causal}
+K{\"o}rding KP, Beierholm U, Ma WJ, Quartz S, Tenenbaum JB, Shams L.
+\newblock Causal inference in multisensory perception.
+\newblock PLoS one. 2007;2(9):e943.
+
+\bibitem{kording2004bayesian}
+K{\"o}rding KP, Wolpert DM.
+\newblock Bayesian integration in sensorimotor learning.
+\newblock Nature. 2004;427(6971):244--247.
+
+\bibitem{wagemans2012century}
+Wagemans J, Elder JH, Kubovy M, Palmer SE, Peterson MA, Singh M, et~al.
+\newblock A century of Gestalt psychology in visual perception: I. Perceptual
+  grouping and figure--ground organization.
+\newblock Psychological bulletin. 2012;138(6):1172.
+
+\bibitem{froyen2015bayesian}
+Froyen V, Feldman J, Singh M.
+\newblock Bayesian hierarchical grouping: Perceptual grouping as mixture
+  estimation.
+\newblock Psychological Review. 2015;122(4):575.
+
+\bibitem{field1993contour}
+Field DJ, Hayes A, Hess RF.
+\newblock Contour integration by the human visual system: evidence for a local
+  “association field”.
+\newblock Vision research. 1993;33(2):173--193.
+
+\bibitem{williams2001orientation}
+Williams LR, Thornber KK.
+\newblock Orientation, scale, and discontinuity as emergent properties of
+  illusory contour shape.
+\newblock Neural Computation. 2001;13(8):1683--1711.
+
+\bibitem{ernst2012optimality}
+Ernst UA, Mandon S, Schinkel-Bielefeld N, Neitzel SD, Kreiter AK, Pawelzik KR.
+\newblock Optimality of human contour integration.
+\newblock PLoS Comput Biol. 2012;8(5):e1002520.
+
+\bibitem{griffiths2007mere}
+Griffiths TL, Tenenbaum JB.
+\newblock From mere coincidences to meaningful discoveries.
+\newblock Cognition. 2007;103(2):180--226.
+
+\bibitem{jones2011bayesian}
+Jones M, Love BC.
+\newblock Bayesian fundamentalism or enlightenment? On the explanatory status
+  and theoretical contributions of Bayesian models of cognition.
+\newblock Behavioral and brain sciences. 2011;34(4):169.
+
+\bibitem{maloney2009bayesian}
+Maloney LT, Mamassian P.
+\newblock Bayesian decision theory as a model of human visual perception:
+  testing Bayesian transfer.
+\newblock Visual neuroscience. 2009;26(1):147--155.
+
+\bibitem{pouget2013probabilistic}
+Pouget A, Beck JM, Ma WJ, Latham PE.
+\newblock Probabilistic brains: knowns and unknowns.
+\newblock Nature neuroscience. 2013;16(9):1170--1178.
+
+\bibitem{fleming2013irrationality}
+Fleming SM, Maloney LT, Daw ND.
+\newblock The irrationality of categorical perception.
+\newblock Journal of Neuroscience. 2013;33(49):19060--19070.
+
+\bibitem{murphy2012reasoning}
+Murphy GL, Chen SY, Ross BH.
+\newblock Reasoning with uncertain categories.
+\newblock Thinking \& Reasoning. 2012;18(1):81--117.
+
+\bibitem{shen2016detailed}
+Shen S, Ma WJ.
+\newblock A detailed comparison of optimality and simplicity in perceptual
+  decision making.
+\newblock Psychological review. 2016;123(4):452.
+
+\bibitem{heller2005bayesian}
+Heller KA, Ghahramani Z.
+\newblock Bayesian hierarchical clustering.
+\newblock In: Proceedings of the 22nd international conference on Machine
+  learning. ACM; 2005. p. 297--304.
+
+\bibitem{schustek2019human}
+Schustek P, Hyafil A, Moreno-Bote R.
+\newblock Human confidence judgments reflect reliability-based hierarchical
+  integration of contextual information.
+\newblock Nature communications. 2019;10(1):1--15.
+
+\end{thebibliography}
+
+\section*{Supporting information}
+
+% Include only the SI item label in the paragraph heading. Use the \nameref{label} command to cite SI items in the text.
+\paragraph*{S1 Fig.}
+\label{S1_Fig}
+{\bf List of models and model parameters. }Model parameters. $N$-dependent parameters are denoted by `(4)', reflecting a unique parameter fit for each $N = 6, 9, 12, 15$ condition.
+
+\paragraph*{S2 Fig.}
+\label{S2_Fig}
+{\bf Stimulus histogram distributions along each distance-based heuristic. }Stimulus histogram distributions along each distance-based heuristic. ``Feeder absent'' trials in blue, ``feeder present'' trials in red, with colour saturation indicating the number of pigeons on a given trial ($N$=6, 9, 12, 15). For each trial, the following quantities were computed: the mean pairwise distance of all pigeons (A), the maximum local density, where local density is computed by convolving a gaussian of $\sigma=1.4$cm over the circular arena (B), the nearest neighbour distance, calculated as the mean distance between all pigeons and their nearest neighbour (C), and the distance between the two nearest pigeons (D).
+
+\paragraph*{S3 Fig.}
+\label{S3_Fig}
+{\bf Model comparison (Bayesian Information Criterion (BIC)). }Model comparison (Bayesian Information Criterion (BIC)). Compared to AIC, BIC model comparison penalizes model complexity more heavily. MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." NN denotes ``Nearest Neighbour." The difference in BIC scores between models ($\Delta$ BIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (D9) in panel B. The four best models (highlighted) are indistinguishable via AIC and BIC.
+
+\paragraph*{S4 Fig.}
+\label{S4_Fig}
+{\bf Model comparison (Bayesian Information Criterion (BIC)) with probability of affiliation fitted as a separate free parameter. }Model comparison (Bayesian Information Criterion (BIC)) with probability of affiliation fitted as a separate free parameter for each of the four $N$ conditions ($N=6, 9, 12, 15$) are denoted with the addition of ``P'' to the model name. Compared to AIC, BIC model comparison penalizes model complexity more heavily. MML denotes ``Maximum Marginal Likelihood," MMP denotes ``Maximum Marginal Posterior," MJP denotes ``Maximum Joint Posterior." NN denotes ``Nearest Neighbour." The difference in BIC scores between models ($\Delta$ BIC) plotted provides an estimate of the quality of each model relative to the fully Bayesian model (A1) in panel A, or the best-fitting model (B6P) in panel B. Adding a flexible $N$-dependent criterion can help rescue the Bayesian model (see model A2 compared to A1), and adding 4 flexible $N$-dependent probability of affiliation parameters increases goodness of fit for all models.
+
+
+\paragraph*{S5 Fig.}
+\label{S5_Fig}
+{\bf Average $d$ (log likelihood ratios) for trials binned by response x confidence pairs across all subjects }Average $d$ (log likelihood ratios) for trials binned by response x confidence pairs across all subjects. Negative confidence rating denotes ``feeder absent'' response and positive confidence denotes a ``feeder present'' response.
+
+\paragraph*{S6 Fig.}
+\label{S6_Fig}
+{\bf Subject reaction times for each response x confidence pair. }Subject reaction times for each response x confidence pair, where negative confidence denotes a ``feeder absent'' response and positive confidence denotes a ``feeder present'' response.
+
+
+\paragraph*{S7 Fig.}
+\label{S7_Fig}
+{\bf Model fits of proportion of ``feeder present" responses as a function of number of pigeons. }
+Model fits of proportion of ``feeder present" responses as a function of number of pigeons (N), denoted by shaded area; subject data denoted by solid lines.
+
+\paragraph*{S8 Fig.}
+\label{S8_Fig}
+{\bf Fitted decision criterion parameter $k_N$ for each $N$. }Value of the fitted decision criterion parameter $k_N$ for each $N$, shown for each of the basic models.
+
+
+\paragraph*{S9 Fig.}
+\label{S9_Fig}
+{\bf Fitted decision criterion parameter $k_N$ for each $N$ for flexible $p_{\text{aff}}$ model variants. }Value of the fitted decision criterion parameter $k_N$ for each $N$, shown for each of the model variants with a flexible $p_{\text{aff}}$.
+
+\paragraph*{S10 Fig.}
+\label{S10_Fig}
+{\bf Histograms of decision variable distributions for example models. }Histograms of decision variable distributions for the Bayesian model ($p_{aff} = 0.5$) in the top row, with two examples of shifted decision variable distributions. Panel A: maximum joint posterior (model 9, right-shifted). Panel B:  Bayesian model with a false probability of affiliation of 0.7 (left-shifted).
+
+\paragraph*{S11 Fig.}
+\label{S11_Fig}
+{\bf Probabiltiy of affiliation ($p_{\text{aff}}$) fits across $N$. }Fitted $p_{\text{aff}}$ for each $N$ shown for each model variant.
+
+\paragraph*{S12 Fig.}
+\label{S12_Fig}
+{\bf ``Feeder present'' responses and model fits. }Model fits of proportion of ``feeder present" responses as a function of number of pigeons (N), denoted by shaded area; subject data denoted by solid lines.
+
+
+
+\end{document}
+
+% -----------------------------------------------------------------------
+% Document End
+% -----------------------------------------------------------------------
